@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
+import re
 
+# Load your existing Dataset.xlsx lexicon
 df = pd.read_excel('Dataset.xlsx')
 
 def build_sentiment_dict(df, word_col='Name of Word', pos_col='Positive', neg_col='Negative'):
@@ -16,10 +18,25 @@ def build_sentiment_dict(df, word_col='Name of Word', pos_col='Positive', neg_co
         sentiment_dict[word] = (pos_score, neg_score)
     return sentiment_dict
 
+# Build from dataset
 sentiment_dict = build_sentiment_dict(df)
 
+# Manually add or override important words with appropriate scores
+custom_scores = {
+    'anger': (0, 3),
+    'delusion': (0, 2),
+    'loss': (0, 2),
+    'destruction': (0, 3),
+    'perishes': (0, 3),
+    'intelligence': (1, 0),
+    # Add more words as needed
+}
+
+# Update lexicon with these scores
+sentiment_dict.update(custom_scores)
+
 def compute_sentiment_all_words(text):
-    import re
+    # Simple tokenization without nltk
     words = re.findall(r'\b\w+\b', text.lower())
     results = []
     pos_total, neg_total = 0, 0
