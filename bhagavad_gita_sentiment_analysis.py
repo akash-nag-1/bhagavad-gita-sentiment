@@ -14,6 +14,11 @@ def build_sentiment_dict(df, word_col='Name of Word', pos_col='Positive', neg_co
             pos_score = 0
         if pd.isna(neg_score):
             neg_score = 0
+        # Ensure scores are numeric (int or float), else set 0
+        if not isinstance(pos_score, (int, float)):
+            pos_score = 0
+        if not isinstance(neg_score, (int, float)):
+            neg_score = 0
         sentiment_dict[word] = (pos_score, neg_score)
     return sentiment_dict
 
@@ -26,6 +31,9 @@ def compute_sentiment(text):
     for word in words:
         if word.isalpha():
             pos, neg = sentiment_dict.get(word, (0, 0))
+            # Ensure pos and neg are numbers
+            pos = 0 if pos is None or not isinstance(pos, (int, float)) else pos
+            neg = 0 if neg is None or not isinstance(neg, (int, float)) else neg
             if pos != 0 or neg != 0:
                 result_words.append((word, pos, neg))
             pos_total += pos
