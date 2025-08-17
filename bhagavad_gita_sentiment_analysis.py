@@ -1,7 +1,9 @@
 import streamlit as st
 import pandas as pd
+import nltk
+nltk.download('punkt')
 
-# Load word sentiment dictionary and data
+# Load your Dataset.xlsx
 df = pd.read_excel('Dataset.xlsx')
 
 def build_sentiment_dict(df, word_col='Name of Word', pos_col='Positive', neg_col='Negative'):
@@ -10,49 +12,49 @@ def build_sentiment_dict(df, word_col='Name of Word', pos_col='Positive', neg_co
         word = str(row[word_col]).strip().lower()
         pos_score = row.get(pos_col, 0)
         neg_score = row.get(neg_col, 0)
-        if pd.isna(pos_score):
-            pos_score = 0
-        if pd.isna(neg_score):
-            neg_score = 0
-        # Ensure scores are numeric (int or float), else set 0
-        if not isinstance(pos_score, (int, float)):
-            pos_score = 0
-        if not isinstance(neg_score, (int, float)):
-            neg_score = 0
+        if pd.isna(pos_score): pos_score = 0
+        if pd.isna(neg_score): neg_score = 0
+        if not isinstance(pos_score, (int, float)): pos_score = 0
+        if not isinstance(neg_score, (int, float)): neg_score = 0
         sentiment_dict[word] = (pos_score, neg_score)
     return sentiment_dict
 
 sentiment_dict = build_sentiment_dict(df)
 
-def compute_sentiment(text):
-    words = text.lower().split()
+def compute_sentiment_all_words(text):
+    words = nltk.word_tokenize(text.lower())
+    results = []
     pos_total, neg_total = 0, 0
-    result_words = []
     for word in words:
         if word.isalpha():
             pos, neg = sentiment_dict.get(word, (0, 0))
-            # Ensure pos and neg are numbers
-            pos = 0 if pos is None or not isinstance(pos, (int, float)) else pos
-            neg = 0 if neg is None or not isinstance(neg, (int, float)) else neg
-            if pos != 0 or neg != 0:
-                result_words.append((word, pos, neg))
+            if not isinstance(pos, (int, float)): pos = 0
+            if not isinstance(neg, (int, float)): neg = 0
+            results.append((word, pos, neg))
             pos_total += pos
             neg_total += neg
+        else:
+            # Include punctuation or non-alpha with 0 scores if you want
+            results.append((word, 0, 0))
     if pos_total > neg_total:
-        sentiment = 'Positive'
+        overall_sentiment = "Positive"
     elif neg_total > pos_total:
-        sentiment = 'Negative'
+        overall_sentiment = "Negative"
     else:
-        sentiment = 'Neutral'
-    return sentiment, result_words, pos_total, neg_total
+        overall_sentiment = "Neutral"
+    return overall_sentiment, pos_total, neg_total, results
 
-# Streamlit UI
-st.title("Bhagavad Gita Sentiment Analysis - Lexicon Based")
+st.title("Bhagavad Gita Sentiment Analysis - Detailed Lexicon View")
 user_text = st.text_area("Enter a verse or sentence:")
 
 if user_text:
-    sentiment, scored_words, pos_sum, neg_sum = compute_sentiment(user_text)
-    st.write(f"**Overall Sentiment:** {sentiment}")
-    st.write(f"Total Positive Score: {pos_sum}, Total Negative Score: {neg_sum}")
-    st.write("**Word Details (matched in lexicon):**")
-    st.table(pd.DataFrame(scored_words, columns=['Word', 'Positive', 'Negative']))
+    overall_sentiment, pos_sum, neg_sum, word_scores = compute_sentiment_all_words(user_text)
+
+    st.markdown(f"**Overall Sentiment:** {overall_sentiment}")
+    st.markdown(f"**Total Positive Score:** {pos_sum}")
+    st.markdown(f"**Total Negative Score:** {neg_sum}")
+
+    st.markdown("### Word Details (all words including unmatched):")
+    # Create DataFrame with all words & scores
+    df_words = pd.DataFrame(word_scores, columns=['Word', 'Positive', 'Negative'])
+    st.table(df_words)
